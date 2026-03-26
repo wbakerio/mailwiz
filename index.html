@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mail Weight & Thickness Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div class="hero-topbar">
+        <div>
+          <p class="eyebrow">Mail Prep Tool</p>
+          <h1>Mailing Wizard</h1>
+          <p class="hero-copy">
+            Build a mail piece one layer at a time, see each part in ounces, and reuse saved components like envelopes or inserts whenever you need them.
+          </p>
+        </div>
+        <button id="manage-saved-btn" class="btn btn-secondary" type="button">Manage Saved Items</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel panel-main">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Mail Piece Builder</p>
+            <h2>Piece Elements</h2>
+          </div>
+        </div>
+
+        <div id="elements" class="elements"></div>
+        <div class="add-element-row">
+          <button id="add-element-btn" class="btn btn-primary" type="button">+ Add Element</button>
+        </div>
+
+        <p class="helper-note">
+          Enter up to 7 elements total. Paper stock options and sheet thickness now follow the uploaded stock chart, and each dropdown narrows the other stock choices to valid combinations.
+        </p>
+      </div>
+
+      <aside class="panel panel-side">
+        <div class="summary-card">
+          <p class="section-label">Live Totals</p>
+          <div class="summary-metric">
+            <span>Total Weight</span>
+            <strong id="total-weight">0.000 oz</strong>
+          </div>
+          <div class="summary-metric">
+            <span>Total Thickness</span>
+            <strong id="total-thickness">0.0000 in</strong>
+          </div>
+          <div class="summary-metric">
+            <span>Total Elements</span>
+            <strong id="total-elements">1</strong>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <section id="saved-manager" class="modal-shell hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-saved-manager="true"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Reusable Items</p>
+          <h2>Manage Saved Pieces</h2>
+        </div>
+        <button id="close-saved-manager-btn" class="icon-btn" type="button" aria-label="Close saved items manager">Close</button>
+      </div>
+
+      <form id="custom-item-form" class="custom-form">
+        <label>
+          Item name
+          <input id="custom-name" name="name" type="text" placeholder="#10 envelope" required>
+        </label>
+        <div class="two-col">
+          <label>
+            Weight (oz)
+            <input id="custom-weight" name="weight" type="number" min="0" step="0.001" placeholder="0.240" required>
+          </label>
+          <label>
+            Thickness (in)
+            <input id="custom-thickness" name="thickness" type="number" min="0" step="0.0001" placeholder="0.0045" required>
+          </label>
+        </div>
+        <div class="manager-actions">
+          <button id="save-custom-item-btn" class="btn btn-secondary" type="submit">Save Item</button>
+          <button id="cancel-edit-btn" class="btn btn-secondary hidden" type="button">Cancel Edit</button>
+        </div>
+      </form>
+
+      <div id="saved-items" class="saved-items"></div>
+    </div>
+  </section>
+
+  <template id="element-template">
+    <article class="element-card">
+      <div class="element-top">
+        <button class="icon-btn toggle-details-btn toggle-glyph-btn" type="button" aria-label="Collapse element">-</button>
+        <div>
+          <p class="section-label element-index"></p>
+          <h3>Mail Element</h3>
+        </div>
+        <div class="element-actions">
+          <button class="icon-btn remove-btn" type="button" aria-label="Remove element">Remove</button>
+        </div>
+      </div>
+
+      <div class="element-summary hidden">
+        <div class="element-summary-line"></div>
+        <div class="element-summary-line element-summary-metrics"></div>
+      </div>
+
+      <div class="element-details">
+        <div class="field-grid field-grid-top">
+        <label>
+          Element type
+          <select class="input-mode">
+            <option value="paper">Paper Sheet**</option>
+            <option value="saved">Saved item</option>
+          </select>
+        </label>
+
+        <label>
+          Quantity
+          <input class="quantity-input" type="number" min="1" step="1" value="1">
+        </label>
+        </div>
+
+        <div class="paper-fields">
+          <div class="field-grid">
+            <label>
+              Paper type
+              <select class="paper-type-input">
+                <option value="">Choose paper type</option>
+                <option value="cover">Cover</option>
+                <option value="bond">Bond</option>
+                <option value="c1s">C1S</option>
+                <option value="c2s">C2S</option>
+                <option value="text">Text / Book / Offset</option>
+                <option value="index">Index</option>
+                <option value="bristol">Bristol</option>
+                <option value="tag">Tag</option>
+              </select>
+            </label>
+            <label>
+              Finish
+              <select class="paper-finish-input">
+                <option value="">Choose finish</option>
+              </select>
+            </label>
+            <label>
+              Paper weight
+              <select class="paper-weight-input" disabled>
+                <option value="">Choose paper weight</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Folding
+              <select class="fold-type-input">
+                <option value="none">None</option>
+                <option value="bifold">Bifold</option>
+                <option value="trifold">Trifold</option>
+                <option value="quadfold">Quadfold</option>
+              </select>
+            </label>
+            <label>
+              Width (in)
+              <input class="width-input" type="number" min="0" step="0.01" placeholder="8.5">
+            </label>
+            <label>
+              Length (in)
+              <input class="length-input" type="number" min="0" step="0.01" placeholder="11">
+            </label>
+          </div>
+        </div>
+
+        <div class="saved-fields hidden">
+          <label>
+            Saved piece
+            <select class="saved-item-input"></select>
+          </label>
+        </div>
+
+        <div class="result-strip">
+          <div>
+            <span>Weight</span>
+            <strong class="element-weight">0.000 oz</strong>
+          </div>
+          <div>
+            <span>Thickness</span>
+            <strong class="element-thickness">0.0000 in</strong>
+          </div>
+        </div>
+
+        <div class="calc-breakdown hidden">
+          <p class="calc-breakdown-title">Basis Calculation</p>
+          <div class="calc-breakdown-grid">
+            <div>
+              <span>Basis Size</span>
+              <strong class="basis-size-output">-</strong>
+            </div>
+            <div>
+              <span>500-Sheet Area</span>
+              <strong class="basis-area-output">-</strong>
+            </div>
+            <div>
+              <span>Weight Per Sq In</span>
+              <strong class="sq-inch-weight-output">-</strong>
+            </div>
+            <div>
+              <span>Single Sheet Weight</span>
+              <strong class="single-sheet-output">-</strong>
+            </div>
+            <div>
+              <span>GSM</span>
+              <strong class="gsm-output">-</strong>
+            </div>
+            <div>
+              <span>Sheet Area</span>
+              <strong class="sheet-area-output">-</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
