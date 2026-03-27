@@ -52,6 +52,13 @@ select {
   align-items: start;
 }
 
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .eyebrow,
 .section-label {
   margin: 0 0 6px;
@@ -227,8 +234,8 @@ option {
 input:focus,
 select:focus {
   outline: none;
-  border-color: rgba(15, 118, 110, 0.6);
-  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+  border-color: rgba(21, 122, 138, 0.6);
+  box-shadow: 0 0 0 4px rgba(21, 122, 138, 0.12);
   transform: translateY(-1px);
 }
 
@@ -433,6 +440,12 @@ select:focus {
 .manager-actions {
   display: flex;
   gap: 12px;
+}
+
+.field-note {
+  font-size: 0.92rem;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 @media (max-width: 980px) {

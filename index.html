@@ -17,7 +17,10 @@
             Build a mail piece one layer at a time, see each part in ounces, and reuse saved components like envelopes or inserts whenever you need them.
           </p>
         </div>
-        <button id="manage-saved-btn" class="btn btn-secondary" type="button">Manage Saved Items</button>
+        <div class="hero-actions">
+          <button id="settings-btn" class="btn btn-secondary" type="button">Settings</button>
+          <button id="manage-saved-btn" class="btn btn-secondary" type="button">Manage Saved Items</button>
+        </div>
       </div>
     </section>
 
@@ -28,6 +31,7 @@
             <p class="section-label">Mail Piece Builder</p>
             <h2>Piece Elements</h2>
           </div>
+          <button id="clear-build-btn" class="btn btn-secondary" type="button">Clear</button>
         </div>
 
         <div id="elements" class="elements"></div>
@@ -44,11 +48,11 @@
         <div class="summary-card">
           <p class="section-label">Live Totals</p>
           <div class="summary-metric">
-            <span>Total Weight</span>
+            <span id="total-weight-label">Total Weight (oz)</span>
             <strong id="total-weight">0.000 oz</strong>
           </div>
           <div class="summary-metric">
-            <span>Total Thickness</span>
+            <span id="total-thickness-label">Total Thickness (in)</span>
             <strong id="total-thickness">0.0000 in</strong>
           </div>
           <div class="summary-metric">
@@ -59,6 +63,47 @@
       </aside>
     </section>
   </main>
+
+  <section id="settings-manager" class="modal-shell hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-settings-manager="true"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Display Options</p>
+          <h2>Settings</h2>
+        </div>
+        <button id="close-settings-manager-btn" class="icon-btn" type="button" aria-label="Close settings">Close</button>
+      </div>
+
+      <form id="settings-form" class="custom-form">
+        <div class="two-col">
+          <label>
+            Weight units
+            <select id="weight-unit-input" name="weightUnit">
+              <option value="oz">Ounces</option>
+              <option value="lb">Pounds</option>
+              <option value="g">Grams</option>
+            </select>
+          </label>
+          <label>
+            Thickness units
+            <select id="thickness-unit-input" name="thicknessUnit">
+              <option value="in">Inches</option>
+              <option value="mm">Millimeters</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Fudge factor
+          <input id="fudge-factor-input" name="fudgeFactor" type="number" min="0" step="0.1" value="1.6">
+          <span class="field-note">Used for accomodating for extra thickness on folded pieces, the default value is 1.6.</span>
+        </label>
+        <div class="manager-actions">
+          <button class="btn btn-secondary" type="submit">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </section>
 
   <section id="saved-manager" class="modal-shell hidden" aria-hidden="true">
     <div class="modal-backdrop" data-close-saved-manager="true"></div>
@@ -78,11 +123,11 @@
         </label>
         <div class="two-col">
           <label>
-            Weight (oz)
+            <span id="custom-weight-label">Weight (oz)</span>
             <input id="custom-weight" name="weight" type="number" min="0" step="0.001" placeholder="0.240" required>
           </label>
           <label>
-            Thickness (in)
+            <span id="custom-thickness-label">Thickness (in)</span>
             <input id="custom-thickness" name="thickness" type="number" min="0" step="0.0001" placeholder="0.0045" required>
           </label>
         </div>
@@ -190,11 +235,11 @@
 
         <div class="result-strip">
           <div>
-            <span>Weight</span>
+            <span class="weight-label">Weight (oz)</span>
             <strong class="element-weight">0.000 oz</strong>
           </div>
           <div>
-            <span>Thickness</span>
+            <span class="thickness-label">Thickness (in)</span>
             <strong class="element-thickness">0.0000 in</strong>
           </div>
         </div>

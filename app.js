@@ -1,10 +1,16 @@
 const MAX_ELEMENTS = 7;
 const STORAGE_KEY = "mail-calculator-saved-items";
+const SETTINGS_STORAGE_KEY = "mail-calculator-settings";
 const FOLD_MULTIPLIERS = {
   none: 1,
   bifold: 2,
   trifold: 3,
   quadfold: 4
+};
+const DEFAULT_SETTINGS = {
+  weightUnit: "oz",
+  thicknessUnit: "in",
+  fudgeFactor: 1.6
 };
 
 const PAPER_TYPES = {
@@ -139,15 +145,26 @@ const defaultSavedItems = [
 
 const state = {
   elements: [],
-  savedItems: loadSavedItems()
+  savedItems: loadSavedItems(),
+  settings: loadSettings()
 };
 
 const elementsRoot = document.querySelector("#elements");
 const addElementBtn = document.querySelector("#add-element-btn");
+const clearBuildBtn = document.querySelector("#clear-build-btn");
 const elementTemplate = document.querySelector("#element-template");
 const totalWeightEl = document.querySelector("#total-weight");
 const totalThicknessEl = document.querySelector("#total-thickness");
 const totalElementsEl = document.querySelector("#total-elements");
+const totalWeightLabelEl = document.querySelector("#total-weight-label");
+const totalThicknessLabelEl = document.querySelector("#total-thickness-label");
+const settingsBtn = document.querySelector("#settings-btn");
+const settingsManager = document.querySelector("#settings-manager");
+const closeSettingsManagerBtn = document.querySelector("#close-settings-manager-btn");
+const settingsForm = document.querySelector("#settings-form");
+const weightUnitInput = document.querySelector("#weight-unit-input");
+const thicknessUnitInput = document.querySelector("#thickness-unit-input");
+const fudgeFactorInput = document.querySelector("#fudge-factor-input");
 const manageSavedBtn = document.querySelector("#manage-saved-btn");
 const savedManager = document.querySelector("#saved-manager");
 const closeSavedManagerBtn = document.querySelector("#close-saved-manager-btn");
@@ -155,6 +172,8 @@ const customItemForm = document.querySelector("#custom-item-form");
 const savedItemsRoot = document.querySelector("#saved-items");
 const saveCustomItemBtn = document.querySelector("#save-custom-item-btn");
 const cancelEditBtn = document.querySelector("#cancel-edit-btn");
+const customWeightLabelEl = document.querySelector("#custom-weight-label");
+const customThicknessLabelEl = document.querySelector("#custom-thickness-label");
 
 let editingSavedItemId = null;
 
@@ -181,8 +200,43 @@ function loadSavedItems() {
   }
 }
 
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) {
+      return { ...DEFAULT_SETTINGS };
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      weightUnit: ["oz", "lb", "g"].includes(parsed.weightUnit) ? parsed.weightUnit : DEFAULT_SETTINGS.weightUnit,
+      thicknessUnit: ["in", "mm"].includes(parsed.thicknessUnit) ? parsed.thicknessUnit : DEFAULT_SETTINGS.thicknessUnit,
+      fudgeFactor: Number(parsed.fudgeFactor) > 0 ? Number(parsed.fudgeFactor) : DEFAULT_SETTINGS.fudgeFactor
+    };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
 function persistSavedItems() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.savedItems));
+}
+
+function persistSettings() {
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(state.settings));
+}
+
+function openSettingsManager() {
+  weightUnitInput.value = state.settings.weightUnit;
+  thicknessUnitInput.value = state.settings.thicknessUnit;
+  fudgeFactorInput.value = String(state.settings.fudgeFactor);
+  settingsManager.classList.remove("hidden");
+  settingsManager.setAttribute("aria-hidden", "false");
+}
+
+function closeSettingsManager() {
+  settingsManager.classList.add("hidden");
+  settingsManager.setAttribute("aria-hidden", "true");
 }
 
 function openSavedManager() {
@@ -199,8 +253,8 @@ function closeSavedManager() {
 function startEditingSavedItem(item) {
   editingSavedItemId = item.id;
   customItemForm.name.value = item.name;
-  customItemForm.weight.value = item.weightOz;
-  customItemForm.thickness.value = item.thicknessIn;
+  customItemForm.weight.value = convertWeightFromOz(item.weightOz);
+  customItemForm.thickness.value = convertThicknessFromIn(item.thicknessIn);
   saveCustomItemBtn.textContent = "Update Item";
   cancelEditBtn.classList.remove("hidden");
   openSavedManager();
@@ -219,6 +273,36 @@ function createId() {
   }
 
   return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function convertWeightFromOz(valueOz) {
+  switch (state.settings.weightUnit) {
+    case "lb":
+      return valueOz / 16;
+    case "g":
+      return valueOz * 28.349523125;
+    default:
+      return valueOz;
+  }
+}
+
+function convertWeightToOz(value) {
+  switch (state.settings.weightUnit) {
+    case "lb":
+      return value * 16;
+    case "g":
+      return value / 28.349523125;
+    default:
+      return value;
+  }
+}
+
+function convertThicknessFromIn(valueIn) {
+  return state.settings.thicknessUnit === "mm" ? valueIn * 25.4 : valueIn;
+}
+
+function convertThicknessToIn(value) {
+  return state.settings.thicknessUnit === "mm" ? value / 25.4 : value;
 }
 
 function createElement() {
@@ -319,6 +403,7 @@ function calculatePaperMetrics(element) {
   const quantity = Math.max(1, Number(element.quantity) || 1);
   const paperType = PAPER_TYPES[element.paperType];
   const foldMultiplier = FOLD_MULTIPLIERS[element.foldType] ?? 1;
+  const foldFudgeFactor = element.foldType === "none" ? 1 : state.settings.fudgeFactor;
   const stock = STOCK_LIBRARY.find((item) =>
     item.type === element.paperType &&
     item.finish === element.paperFinish &&
@@ -349,7 +434,7 @@ function calculatePaperMetrics(element) {
     : paperWeight * (sheetAreaInSq / basisAreaInSq) / 500;
   const poundsPerSquareIn = sheetAreaInSq ? poundsPerSheet / sheetAreaInSq : 0;
   const weightOz = poundsPerSheet * 16 * quantity;
-  const thicknessIn = stock.thicknessIn * quantity * foldMultiplier;
+  const thicknessIn = stock.thicknessIn * quantity * foldMultiplier * foldFudgeFactor;
 
   return {
     weightOz,
@@ -387,16 +472,37 @@ function calculateElement(element) {
     : calculatePaperMetrics(element);
 }
 
-function formatOz(value) {
-  return `${value.toFixed(3)} oz`;
+function formatWeight(valueOz) {
+  const converted = convertWeightFromOz(valueOz);
+
+  switch (state.settings.weightUnit) {
+    case "lb":
+      return `${converted.toFixed(4)} lb`;
+    case "g":
+      return `${converted.toFixed(2)} g`;
+    default:
+      return `${converted.toFixed(3)} oz`;
+  }
 }
 
-function formatInches(value) {
-  return `${value.toFixed(4)} in`;
+function formatThickness(valueIn) {
+  const converted = convertThicknessFromIn(valueIn);
+  return state.settings.thicknessUnit === "mm"
+    ? `${converted.toFixed(3)} mm`
+    : `${converted.toFixed(4)} in`;
 }
 
-function formatPounds(value) {
-  return `${value.toFixed(6)} lb`;
+function formatWeightPerSquareIn(valueOzPerSquareIn) {
+  const converted = convertWeightFromOz(valueOzPerSquareIn);
+
+  switch (state.settings.weightUnit) {
+    case "lb":
+      return `${converted.toFixed(6)} lb/sq in`;
+    case "g":
+      return `${converted.toFixed(4)} g/sq in`;
+    default:
+      return `${converted.toFixed(4)} oz/sq in`;
+  }
 }
 
 function formatSquareInches(value) {
@@ -428,7 +534,7 @@ function getElementSummary(element) {
     const name = saved?.name ?? "Saved item";
     return {
       title: `${name} x${element.quantity || 1}`,
-      metrics: `${formatOz(element.result.weightOz || 0)} | ${formatInches(element.result.thicknessIn || 0)}`
+      metrics: `${formatWeight(element.result.weightOz || 0)} | ${formatThickness(element.result.thicknessIn || 0)}`
     };
   }
 
@@ -442,12 +548,55 @@ function getElementSummary(element) {
 
   return {
     title: `${paperTypeLabel} | ${finishLabel} | ${paperWeightLabel} | ${sizeLabel} | ${getFoldLabel(element.foldType)} | Qty ${element.quantity || 1}`,
-    metrics: `${formatOz(element.result.weightOz || 0)} | ${formatInches(element.result.thicknessIn || 0)}`
+    metrics: `${formatWeight(element.result.weightOz || 0)} | ${formatThickness(element.result.thicknessIn || 0)}`
   };
 }
 
 function syncSelectPlaceholderState(select) {
   select.classList.toggle("placeholder", !select.value);
+}
+
+function getWeightUnitLabel() {
+  switch (state.settings.weightUnit) {
+    case "lb":
+      return "lb";
+    case "g":
+      return "g";
+    default:
+      return "oz";
+  }
+}
+
+function getThicknessUnitLabel() {
+  return state.settings.thicknessUnit === "mm" ? "mm" : "in";
+}
+
+function refreshAllElementDisplays() {
+  document.querySelectorAll(".element-card").forEach((card) => {
+    const weightLabel = card.querySelector(".weight-label");
+    const thicknessLabel = card.querySelector(".thickness-label");
+
+    if (weightLabel) {
+      weightLabel.textContent = `Weight (${getWeightUnitLabel()})`;
+    }
+
+    if (thicknessLabel) {
+      thicknessLabel.textContent = `Thickness (${getThicknessUnitLabel()})`;
+    }
+  });
+}
+
+function applyDisplaySettings() {
+  totalWeightLabelEl.textContent = `Total Weight (${getWeightUnitLabel()})`;
+  totalThicknessLabelEl.textContent = `Total Thickness (${getThicknessUnitLabel()})`;
+  customWeightLabelEl.textContent = `Weight (${getWeightUnitLabel()})`;
+  customThicknessLabelEl.textContent = `Thickness (${getThicknessUnitLabel()})`;
+  refreshAllElementDisplays();
+  renderSavedItems();
+  document.querySelectorAll(".element-card .quantity-input").forEach((input) => {
+    input.dispatchEvent(new Event("change"));
+  });
+  updateTotals();
 }
 
 function updateTotals() {
@@ -459,8 +608,8 @@ function updateTotals() {
     return accumulator;
   }, { weightOz: 0, thicknessIn: 0 });
 
-  totalWeightEl.textContent = formatOz(totals.weightOz);
-  totalThicknessEl.textContent = formatInches(totals.thicknessIn);
+  totalWeightEl.textContent = formatWeight(totals.weightOz);
+  totalThicknessEl.textContent = formatThickness(totals.thicknessIn);
   totalElementsEl.textContent = String(state.elements.length);
 
   addElementBtn.disabled = state.elements.length >= MAX_ELEMENTS;
@@ -497,7 +646,7 @@ function renderSavedItems() {
     wrapper.innerHTML = `
       <div>
         <p class="saved-item-name">${item.name}</p>
-        <div class="saved-item-meta">${formatOz(item.weightOz)} | ${formatInches(item.thicknessIn)}</div>
+        <div class="saved-item-meta">${formatWeight(item.weightOz)} | ${formatThickness(item.thicknessIn)}</div>
       </div>
       <div class="saved-item-actions">
         <button class="icon-btn" type="button" data-edit-id="${item.id}">Edit</button>
@@ -595,8 +744,8 @@ function bindElementCard(card, element) {
 
     const result = calculateElement(element);
     element.result = result;
-    weightOutput.textContent = formatOz(result.weightOz);
-    thicknessOutput.textContent = formatInches(result.thicknessIn);
+    weightOutput.textContent = formatWeight(result.weightOz);
+    thicknessOutput.textContent = formatThickness(result.thicknessIn);
     const summary = getElementSummary(element);
     elementSummaryLine.textContent = summary.title;
     elementSummaryMetrics.textContent = summary.metrics;
@@ -604,8 +753,8 @@ function bindElementCard(card, element) {
     if (element.mode === "paper" && result.reamAreaInSq) {
       basisSizeOutput.textContent = result.basisSizeLabel;
       basisAreaOutput.textContent = formatSquareInches(result.reamAreaInSq);
-      sqInWeightOutput.textContent = result.poundsPerSquareIn ? formatPounds(result.poundsPerSquareIn) : "Point stock";
-      singleSheetOutput.textContent = result.poundsPerSheet ? `${formatPounds(result.poundsPerSheet)} | ${formatOz(result.poundsPerSheet * 16)}` : "Weight not derived from pt alone";
+      sqInWeightOutput.textContent = result.poundsPerSquareIn ? formatWeightPerSquareIn(result.poundsPerSquareIn * 16) : "Point stock";
+      singleSheetOutput.textContent = result.poundsPerSheet ? formatWeight(result.poundsPerSheet * 16) : "Weight not derived from pt alone";
       gsmOutput.textContent = result.gsm ? formatGsm(result.gsm) : "N/A";
       sheetAreaOutput.textContent = formatSquareInches(result.sheetAreaInSq);
     } else {
@@ -694,14 +843,34 @@ function addElement() {
   updateTotals();
 }
 
+function resetBuild() {
+  state.elements = [];
+  elementsRoot.innerHTML = "";
+  addElement();
+}
+
 function initialize() {
+  applyDisplaySettings();
   renderSavedItems();
   addElement();
 
   addElementBtn.addEventListener("click", addElement);
+  clearBuildBtn.addEventListener("click", resetBuild);
+  settingsBtn.addEventListener("click", openSettingsManager);
+  closeSettingsManagerBtn.addEventListener("click", closeSettingsManager);
   manageSavedBtn.addEventListener("click", openSavedManager);
   closeSavedManagerBtn.addEventListener("click", closeSavedManager);
   cancelEditBtn.addEventListener("click", clearSavedItemForm);
+  settingsManager.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    if (target.dataset.closeSettingsManager) {
+      closeSettingsManager();
+    }
+  });
   savedManager.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
@@ -713,13 +882,27 @@ function initialize() {
     }
   });
 
+  settingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    state.settings = {
+      weightUnit: weightUnitInput.value,
+      thicknessUnit: thicknessUnitInput.value,
+      fudgeFactor: Number(fudgeFactorInput.value) > 0 ? Number(fudgeFactorInput.value) : DEFAULT_SETTINGS.fudgeFactor
+    };
+
+    persistSettings();
+    applyDisplaySettings();
+    closeSettingsManager();
+  });
+
   customItemForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const formData = new FormData(customItemForm);
     const name = String(formData.get("name") ?? "").trim();
-    const weightOz = Number(formData.get("weight"));
-    const thicknessIn = Number(formData.get("thickness"));
+    const weightOz = convertWeightToOz(Number(formData.get("weight")));
+    const thicknessIn = convertThicknessToIn(Number(formData.get("thickness")));
 
     if (!name || weightOz < 0 || thicknessIn < 0) {
       return;
