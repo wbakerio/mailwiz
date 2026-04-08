@@ -3,334 +3,276 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gang Runner</title>
+  <title>Mail Weight & Thickness Calculator</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <header class="hero">
-      <div class="hero-copy-block">
-        <p class="eyebrow">Printing Layout Optimization</p>
-        <h1>Gang Runner</h1>
-        <p class="hero-copy">
-          Plan efficient press sheet layouts, compare stock costs, account for gripper space,
-          and hand a visual layout plan to production with confidence.
-        </p>
-      </div>
-      <div class="hero-actions">
-        <button class="ghost-button" id="loadSampleButton" type="button">Load Sample</button>
-        <button class="ghost-button" id="openSettingsButton" type="button">Settings</button>
-        <button class="ghost-button" id="printReportButton" type="button">Export / Print Layouts</button>
-        <input type="file" id="jobFileInput" accept="application/json" hidden>
-      </div>
-      <div class="run-type-row">
-        <div class="run-type-bar">
-          <label for="selectedRunType">Run Type</label>
-          <select id="selectedRunType"></select>
-        </div>
-        <div class="run-type-side-actions">
-          <button class="primary-button" id="resetJobButton" type="button">RESET</button>
-          <div class="run-type-secondary-actions">
-            <button class="ghost-button" id="saveJobButton" type="button">Save Job</button>
-            <button class="ghost-button" id="loadJobButton" type="button">Load Job</button>
-          </div>
-        </div>
-      </div>
-      <div class="hero-summary" id="heroSummary">
+  <main class="app-shell">
+    <section class="hero">
+      <div class="hero-topbar">
         <div>
-          <span class="summary-label">Best Plan</span>
-          <strong id="summaryLayouts">0 layouts</strong>
+          <p class="eyebrow">Mail Prep Tool</p>
+          <h1>Mailing Wizard</h1>
+          <p class="hero-copy">
+            Build a mail piece one layer at a time, see each part in ounces, and reuse saved components like envelopes or inserts whenever you need them.
+          </p>
         </div>
-        <div>
-          <span class="summary-label">Press Sheets</span>
-          <strong id="summarySheets">0 sheets</strong>
-        </div>
-        <div>
-          <span class="summary-label">Estimated Cost</span>
-          <strong id="summaryCost">$0.00</strong>
-        </div>
-      </div>
-    </header>
-
-    <main class="workspace">
-      <section class="panel form-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-kicker">Job Setup</p>
-            <h2>Items To Print</h2>
-          </div>
-          <div class="job-meta-grid one-up">
-            <div class="job-name-wrap">
-              <label for="jobName">Job name</label>
-              <input type="text" id="jobName" placeholder="Spring Mailer Campaign">
-            </div>
-          </div>
-        </div>
-
-        <form id="itemForm" class="item-form large-form">
-          <input type="hidden" id="itemEditId">
-          <label>
-            Item name
-            <input type="text" id="itemName" placeholder="Postcard A">
-          </label>
-          <label>
-            Width
-            <input type="text" id="itemWidth" inputmode="decimal" required>
-          </label>
-          <label>
-            Height
-            <input type="text" id="itemHeight" inputmode="decimal" required>
-          </label>
-          <label>
-            Quantity
-            <input type="text" id="itemQty" inputmode="numeric" required>
-          </label>
-          <div class="inline-form-action submit-action">
-            <button class="primary-button" id="itemSubmitButton" type="submit">+</button>
-          </div>
-          <div class="inline-form-action cancel-action">
-            <button class="ghost-button hidden" id="cancelEditButton" type="button">Cancel Edit</button>
-          </div>
-        </form>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Flat Size</th>
-                <th>Run Size</th>
-                <th>Qty</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="itemsTableBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel results-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-kicker">Optimization Output</p>
-            <h2>Recommended Plan</h2>
-          </div>
-        </div>
-
-        <div id="emptyState" class="empty-state">
-          <p id="emptyStateMessage">Add at least one item and one press sheet size in Settings to generate a layout plan.</p>
-          <button class="primary-button" id="calculateButton" type="button">Calculate</button>
-        </div>
-
-        <div id="resultsContent" class="results-content hidden">
-          <div class="results-cards">
-            <article class="metric-card">
-              <span>Distinct layouts</span>
-              <strong id="metricDistinctLayouts">0</strong>
-            </article>
-            <article class="metric-card">
-              <span>Total press sheets</span>
-              <strong id="metricTotalSheets">0</strong>
-            </article>
-            <article class="metric-card">
-              <span>Total estimated cost</span>
-              <strong id="metricTotalCost">$0.00</strong>
-            </article>
-            <article class="metric-card">
-              <span>Optimization mode</span>
-              <strong id="metricOptimizationMode">Fewest layouts</strong>
-            </article>
-          </div>
-
-          <div id="itemSummaryCards" class="item-summary-grid"></div>
-          <div id="layoutPlans" class="layout-plan-list"></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div class="modal hidden" id="settingsModal" aria-hidden="true">
-    <div class="modal-backdrop" data-action="close-settings"></div>
-    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <div class="panel-header modal-header">
-        <div>
-          <p class="panel-kicker">Production Inputs</p>
-          <h2 id="settingsTitle">Settings</h2>
-        </div>
-        <button class="icon-button close-button" data-action="close-settings" type="button">Close</button>
-      </div>
-
-      <div class="modal-content">
-        <div class="settings-group">
-          <div class="sheet-header">
-            <h3>Run Type</h3>
-            <p>Select which run type you want to edit in this settings view. Then choose production costs associated with that type along with the associated press sheet sizes for that type.</p>
-          </div>
-          <div class="settings-grid run-type-settings-grid">
-            <label>
-              Active run type
-              <select id="modalRunType"></select>
-            </label>
-            <div class="run-type-editor">
-              <label>
-                Run type name
-                <input type="text" id="runTypeName" placeholder="Digital Stocks">
-              </label>
-              <div class="run-type-actions">
-                <button class="secondary-button" id="addRunTypeButton" type="button">Add New</button>
-                <button class="ghost-button" id="renameRunTypeButton" type="button">Save Name</button>
-                <button class="icon-button" id="removeRunTypeButton" type="button">Remove</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-group run-type-switch-panel" id="generalProductionCard">
-          <h3>General Production</h3>
-          <div class="settings-grid wide-grid">
-            <label>
-              Plating cost per layout
-              <div class="input-with-unit">
-                <input type="text" id="platingCost" inputmode="decimal">
-                <span class="field-unit">$</span>
-              </div>
-            </label>
-            <label>
-              Makeready time per layout
-              <div class="input-with-unit">
-                <input type="text" id="makereadyTime" inputmode="decimal">
-                <span class="field-unit">min</span>
-              </div>
-            </label>
-            <label>
-              Makeready sheets per layout
-              <div class="input-with-unit">
-                <input type="text" id="makereadySheets" inputmode="numeric">
-                <span class="field-unit">sht</span>
-              </div>
-            </label>
-            <label>
-              Labor cost per hour
-              <div class="input-with-unit">
-                <input type="text" id="laborCostPerHour" inputmode="decimal">
-                <span class="field-unit">$/hr</span>
-              </div>
-            </label>
-            <label>
-              Gutter between pieces
-              <div class="input-with-unit">
-                <input type="text" id="gutter" inputmode="decimal">
-                <span class="field-unit">in</span>
-              </div>
-            </label>
-            <label>
-              Sheet margin
-              <div class="input-with-unit">
-                <input type="text" id="sheetMargin" inputmode="decimal">
-                <span class="field-unit">in</span>
-              </div>
-            </label>
-            <label>
-              Gripper edge
-              <div class="input-with-unit">
-                <input type="text" id="gripper" inputmode="decimal">
-                <span class="field-unit">in</span>
-              </div>
-            </label>
-            <fieldset class="radio-field">
-              <legend>Gripper side</legend>
-              <label class="radio-option">
-                <input type="radio" name="gripperEdge" id="gripperEdgeLong" value="long">
-                <span>Long edge</span>
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="gripperEdge" id="gripperEdgeShort" value="short">
-                <span>Short edge</span>
-              </label>
-            </fieldset>
-            <label>
-              Optimization priority
-              <select id="optimizationMode">
-                <option value="layouts-first">Fewest layouts first</option>
-                <option value="cost-first">Lowest total cost first</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="settings-group run-type-switch-panel" id="pressSheetSizesCard">
-          <div class="sheet-header">
-            <h3>Press Sheet Sizes</h3>
-            <p>Build a reusable stock list with per-sheet costs.</p>
-          </div>
-          <form id="sheetForm" class="item-form sheet-form">
-            <input type="hidden" id="sheetEditId">
-            <label>
-              Sheet name
-              <input type="text" id="sheetName" placeholder="28 x 40 C1S">
-            </label>
-            <label>
-              Run type
-              <select id="sheetRunType"></select>
-            </label>
-            <label>
-              Width
-              <input type="text" id="sheetWidth" inputmode="decimal" required>
-            </label>
-            <label>
-              Height
-              <input type="text" id="sheetHeight" inputmode="decimal" required>
-            </label>
-            <label>
-              Sheet cost
-              <div class="input-with-unit">
-                <input type="text" id="sheetCost" inputmode="decimal" required>
-                <span class="field-unit">$</span>
-              </div>
-            </label>
-            <div class="form-actions">
-              <button class="secondary-button" id="sheetSubmitButton" type="submit">Add Sheet</button>
-              <button class="ghost-button hidden" id="cancelSheetEditButton" type="button">Cancel Edit</button>
-            </div>
-          </form>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Use</th>
-                  <th>Run Type</th>
-                  <th>Sheet</th>
-                  <th>Size</th>
-                  <th>Cost</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="sheetsTableBody"></tbody>
-            </table>
-          </div>
+        <div class="hero-actions">
+          <button id="settings-btn" class="btn btn-secondary" type="button">Settings</button>
+          <button id="manage-saved-btn" class="btn btn-secondary" type="button">Manage Saved Items</button>
         </div>
       </div>
     </section>
-  </div>
 
-  <template id="layoutCardTemplate">
-    <article class="layout-card">
-      <div class="layout-card-header">
-        <div>
-          <h3 class="layout-title"></h3>
-          <p class="layout-meta"></p>
+    <section class="layout">
+      <div class="panel panel-main">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Mail Piece Builder</p>
+            <h2>Piece Elements</h2>
+          </div>
+          <button id="clear-build-btn" class="btn btn-secondary" type="button">Clear</button>
         </div>
-        <div class="layout-cost"></div>
+
+        <div id="elements" class="elements"></div>
+        <div class="add-element-row">
+          <button id="add-element-btn" class="btn btn-primary" type="button">+ Add Element</button>
+        </div>
+
+        <p class="helper-note">
+          Enter up to 7 elements total. Paper stock options and sheet thickness now follow the uploaded stock chart, and each dropdown narrows the other stock choices to valid combinations.
+        </p>
       </div>
-      <div class="layout-card-body">
-        <div class="sheet-preview-wrap">
-          <div class="sheet-preview">
-            <div class="sheet-gripper"></div>
-            <div class="sheet-safe-area"></div>
+
+      <aside class="panel panel-side">
+        <div class="summary-card">
+          <p class="section-label">Live Totals</p>
+          <div class="summary-metric">
+            <span id="total-weight-label">Total Weight (oz)</span>
+            <strong id="total-weight">0.000 oz</strong>
+          </div>
+          <div class="summary-metric">
+            <span id="total-thickness-label">Total Thickness (in)</span>
+            <strong id="total-thickness">0.0000 in</strong>
+          </div>
+          <div class="summary-metric">
+            <span>Total Elements</span>
+            <strong id="total-elements">1</strong>
           </div>
         </div>
-        <div class="layout-details"></div>
+      </aside>
+    </section>
+  </main>
+
+  <section id="settings-manager" class="modal-shell hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-settings-manager="true"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Display Options</p>
+          <h2>Settings</h2>
+        </div>
+        <button id="close-settings-manager-btn" class="icon-btn" type="button" aria-label="Close settings">Close</button>
+      </div>
+
+      <form id="settings-form" class="custom-form">
+        <div class="two-col">
+          <label>
+            Weight units
+            <select id="weight-unit-input" name="weightUnit">
+              <option value="oz">Ounces</option>
+              <option value="lb">Pounds</option>
+              <option value="g">Grams</option>
+            </select>
+          </label>
+          <label>
+            Thickness units
+            <select id="thickness-unit-input" name="thicknessUnit">
+              <option value="in">Inches</option>
+              <option value="mm">Millimeters</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Fudge factor
+          <input id="fudge-factor-input" name="fudgeFactor" type="number" min="0" step="0.1" value="1.6">
+          <span class="field-note">Used for accomodating for extra thickness on folded pieces, the default value is 1.6.</span>
+        </label>
+        <div class="manager-actions">
+          <button class="btn btn-secondary" type="submit">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="saved-manager" class="modal-shell hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close-saved-manager="true"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <div>
+          <p class="section-label">Reusable Items</p>
+          <h2>Manage Saved Pieces</h2>
+        </div>
+        <button id="close-saved-manager-btn" class="icon-btn" type="button" aria-label="Close saved items manager">Close</button>
+      </div>
+
+      <form id="custom-item-form" class="custom-form">
+        <label>
+          Item name
+          <input id="custom-name" name="name" type="text" placeholder="#10 envelope" required>
+        </label>
+        <div class="two-col">
+          <label>
+            <span id="custom-weight-label">Weight (oz)</span>
+            <input id="custom-weight" name="weight" type="number" min="0" step="0.001" placeholder="0.240" required>
+          </label>
+          <label>
+            <span id="custom-thickness-label">Thickness (in)</span>
+            <input id="custom-thickness" name="thickness" type="number" min="0" step="0.0001" placeholder="0.0045" required>
+          </label>
+        </div>
+        <div class="manager-actions">
+          <button id="save-custom-item-btn" class="btn btn-secondary" type="submit">Save Item</button>
+          <button id="cancel-edit-btn" class="btn btn-secondary hidden" type="button">Cancel Edit</button>
+        </div>
+      </form>
+
+      <div id="saved-items" class="saved-items"></div>
+    </div>
+  </section>
+
+  <template id="element-template">
+    <article class="element-card">
+      <div class="element-top">
+        <button class="icon-btn toggle-details-btn toggle-glyph-btn" type="button" aria-label="Collapse element">-</button>
+        <div>
+          <p class="section-label element-index"></p>
+          <h3>Mail Element</h3>
+        </div>
+        <div class="element-actions">
+          <button class="icon-btn remove-btn" type="button" aria-label="Remove element">Remove</button>
+        </div>
+      </div>
+
+      <div class="element-summary hidden">
+        <div class="element-summary-line"></div>
+        <div class="element-summary-line element-summary-metrics"></div>
+      </div>
+
+      <div class="element-details">
+        <div class="field-grid field-grid-top">
+        <label>
+          Element type
+          <select class="input-mode">
+            <option value="paper">Paper Sheet**</option>
+            <option value="saved">Saved item</option>
+          </select>
+        </label>
+
+        <label>
+          Quantity
+          <input class="quantity-input" type="number" min="1" step="1" value="1">
+        </label>
+        </div>
+
+        <div class="paper-fields">
+          <div class="field-grid">
+            <label>
+              Paper type
+              <select class="paper-type-input">
+                <option value="">Choose paper type</option>
+                <option value="cover">Cover</option>
+                <option value="bond">Bond</option>
+                <option value="c1s">C1S</option>
+                <option value="c2s">C2S</option>
+                <option value="text">Text / Book / Offset</option>
+                <option value="index">Index</option>
+                <option value="bristol">Bristol</option>
+                <option value="tag">Tag</option>
+              </select>
+            </label>
+            <label>
+              Finish
+              <select class="paper-finish-input">
+                <option value="">Choose finish</option>
+              </select>
+            </label>
+            <label>
+              Paper weight
+              <select class="paper-weight-input" disabled>
+                <option value="">Choose paper weight</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              Folding
+              <select class="fold-type-input">
+                <option value="none">None</option>
+                <option value="bifold">Bifold</option>
+                <option value="trifold">Trifold</option>
+                <option value="quadfold">Quadfold</option>
+              </select>
+            </label>
+            <label>
+              Width (in)
+              <input class="width-input" type="number" min="0" step="0.01" placeholder="8.5">
+            </label>
+            <label>
+              Length (in)
+              <input class="length-input" type="number" min="0" step="0.01" placeholder="11">
+            </label>
+          </div>
+        </div>
+
+        <div class="saved-fields hidden">
+          <label>
+            Saved piece
+            <select class="saved-item-input"></select>
+          </label>
+        </div>
+
+        <div class="result-strip">
+          <div>
+            <span class="weight-label">Weight (oz)</span>
+            <strong class="element-weight">0.000 oz</strong>
+          </div>
+          <div>
+            <span class="thickness-label">Thickness (in)</span>
+            <strong class="element-thickness">0.0000 in</strong>
+          </div>
+        </div>
+
+        <div class="calc-breakdown hidden">
+          <p class="calc-breakdown-title">Basis Calculation</p>
+          <div class="calc-breakdown-grid">
+            <div>
+              <span>Basis Size</span>
+              <strong class="basis-size-output">-</strong>
+            </div>
+            <div>
+              <span>500-Sheet Area</span>
+              <strong class="basis-area-output">-</strong>
+            </div>
+            <div>
+              <span>Weight Per Sq In</span>
+              <strong class="sq-inch-weight-output">-</strong>
+            </div>
+            <div>
+              <span>Single Sheet Weight</span>
+              <strong class="single-sheet-output">-</strong>
+            </div>
+            <div>
+              <span>GSM</span>
+              <strong class="gsm-output">-</strong>
+            </div>
+            <div>
+              <span>Sheet Area</span>
+              <strong class="sheet-area-output">-</strong>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
   </template>
